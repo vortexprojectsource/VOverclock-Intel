@@ -2,12 +2,11 @@
 #include "resource.h"
 
 IDI_VO_APP      ICON    "../assets/vointel.ico"
-IDR_XAML_LAYOUT RCDATA  "ui/AppLayout.xaml"
 IDR_PNG_LOGO    RCDATA  "../assets/logo_ui.png"
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION     1,0,0,0
-PRODUCTVERSION  1,0,0,0
+FILEVERSION     1,0,2,0
+PRODUCTVERSION  1,0,2,0
 FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
 FILEFLAGS       0x0L
 FILEOS          VOS_NT_WINDOWS32
@@ -19,13 +18,13 @@ BEGIN
         BLOCK "040904B0"
         BEGIN
             VALUE "CompanyName",      "Vortex Open Source Project"
-            VALUE "FileDescription",  "VOverclock Intel Beta - CPU Tuner & Core Monitor"
-            VALUE "FileVersion",      "1.0.0.0"
+            VALUE "FileDescription",  "VOverclock Intel Beta Phase 2 - CPU Tuner & Core Monitor"
+            VALUE "FileVersion",      "1.0.2.0"
             VALUE "InternalName",     "VOverclockIntel.exe"
             VALUE "LegalCopyright",   "Vortex Open Source Project"
             VALUE "OriginalFilename", "VOverclockIntel.exe"
-            VALUE "ProductName",      "VOverclock Intel Beta"
-            VALUE "ProductVersion",   "Beta"
+            VALUE "ProductName",      "VOverclock Intel Beta Phase 2"
+            VALUE "ProductVersion",   "Beta Phase 2"
         END
     END
     BLOCK "VarFileInfo"

@@ -25,7 +25,7 @@ namespace {
 constexpr wchar_t kVPowerPlanName[] = L"VPower Intel Beta";
 constexpr wchar_t kLegacyVPowerPlanName[] = L"VPower Intel V1.0";
 constexpr wchar_t kVPowerPlanDesc[] =
-    L"Custom Intel Hybrid P-Core & E-Core Maximum Performance Power Plan [Balanced-HWP-V2] (VOverclock Intel Beta)";
+    L"Custom Intel Hybrid P-Core & E-Core Maximum Performance Power Plan [Balanced-HWP-V2] (VOverclock Intel Beta Phase 2)";
 
 bool IsVPowerSchemeName(const std::wstring& name) {
     return _wcsicmp(name.c_str(), kVPowerPlanName) == 0 ||

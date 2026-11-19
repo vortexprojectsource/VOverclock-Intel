@@ -1,4 +1,5 @@
 #include "TrayIconRenderer.hpp"
+#include "Win32Compat.hpp"
 #include "../resources/resource.h"
 
 #include <commctrl.h>
@@ -18,7 +19,7 @@ namespace vint {
 namespace {
 
 int GetTrayIconSizePx(UINT dpi) {
-    int sm = GetSystemMetricsForDpi(SM_CXSMICON, dpi);
+    int sm = compat::GetSystemMetricsForDpiCompat(SM_CXSMICON, dpi);
     return (sm > 0) ? sm : 16;
 }
 

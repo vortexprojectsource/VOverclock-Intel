@@ -1,11 +1,11 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
-title VOverclock Intel Beta - Build Script
+title VOverclock Intel Beta Phase 2 - Build Script
 cd /d "%~dp0"
 
 echo ==================================================
-echo   VOverclock Intel Beta - Native C++ Builder
+echo   VOverclock Intel Beta Phase 2 - Native C++ Builder
 echo ==================================================
 echo.
 

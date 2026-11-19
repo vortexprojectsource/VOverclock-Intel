@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
-project(VOverclockIntel VERSION 1.0.0 LANGUAGES CXX RC)
+project(VOverclockIntel VERSION 1.0.2 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Link MSVC C/C++ runtime statically so the binary never requires external VCRUNTIME/MSVCP DLLs.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 add_executable(VOverclockIntel WIN32
     src/main.cpp
@@ -15,12 +18,15 @@ add_executable(VOverclockIntel WIN32
     src/ConfigManager.hpp
     src/TrayIconRenderer.cpp
     src/TrayIconRenderer.hpp
+    src/VectorIcons.cpp
+    src/VectorIcons.hpp
+    src/Win32Compat.hpp
     resources/VOverclock.rc
     resources/app.manifest
 )
 
 set_source_files_properties(resources/VOverclock.rc PROPERTIES
-    OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/resources/ui/AppLayout.xaml;${CMAKE_CURRENT_SOURCE_DIR}/assets/logo_ui.png;${CMAKE_CURRENT_SOURCE_DIR}/assets/vointel.ico"
+    OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/logo_ui.png;${CMAKE_CURRENT_SOURCE_DIR}/assets/vointel.ico"
 )
 
 target_include_directories(VOverclockIntel PRIVATE
@@ -51,7 +57,6 @@ if(MSVC)
 endif()
 
 target_link_libraries(VOverclockIntel PRIVATE
-    windowsapp
     user32
     gdi32
     shell32
@@ -63,7 +68,6 @@ target_link_libraries(VOverclockIntel PRIVATE
     shlwapi
     xmllite
     d2d1
-    d3d11
     dwrite
     windowscodecs
     ole32

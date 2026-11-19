@@ -1118,7 +1118,7 @@
                                 <TextBlock x:Name="AmdBlockVendorText" Text="Vendor: AuthenticAMD" FontSize="11" FontWeight="SemiBold" Foreground="#B91C1C" />
                             </StackPanel>
                         </StackPanel>
-                        <TextBlock Text="VOverclock Intel Beta only permits GenuineIntel processors. All sliders, VPower Intel Beta power plan creation, core tuning, and target optimization have been locked." FontSize="12" Foreground="#09090B" TextWrapping="Wrap" />
+                        <TextBlock Text="VOverclock Intel Beta Phase 2 only permits GenuineIntel processors. All sliders, VPower Intel Beta power plan creation, core tuning, and target optimization have been locked." FontSize="12" Foreground="#09090B" TextWrapping="Wrap" />
                         <Border Background="#FFFFFF" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="6" Padding="10,8">
                             <TextBlock x:Name="AmdBlockCpuNameText" Text="Detected CPU: --" FontSize="11.5" FontWeight="SemiBold" Foreground="#991B1B" TextWrapping="Wrap" />
                         </Border>
@@ -1264,7 +1264,7 @@
                 <StackPanel Spacing="2" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <TextBlock Text="VOverclock Intel" FontSize="13.5" FontWeight="Bold" Foreground="#09090B" VerticalAlignment="Center" />
-                        <TextBlock Text="Beta" FontSize="11.5" FontWeight="Bold" Foreground="#2563EB" VerticalAlignment="Center" />
+                        <TextBlock Text="Beta Phase 2" FontSize="11.5" FontWeight="Bold" Foreground="#2563EB" VerticalAlignment="Center" />
                     </StackPanel>
                     <TextBlock Text="Created by : @vinnotdkk" FontSize="11.5" Foreground="#475569" />
                 </StackPanel>

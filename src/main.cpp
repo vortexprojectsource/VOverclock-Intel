@@ -5,10 +5,10 @@
 #endif
 #include <windows.h>
 #include <commctrl.h>
-
-#include <winrt/base.h>
+#include <objbase.h>
 
 #include <cstring>
+#include <exception>
 
 namespace {
 
@@ -17,7 +17,7 @@ bool HasCommandLineFlag(const wchar_t* cmdLine, const wchar_t* flag) {
     return wcsstr(cmdLine, flag) != nullptr;
 }
 
-}
+} // namespace
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int) {
     const bool elevatedRestart = HasCommandLineFlag(lpCmdLine, L"--elevated-restart");
@@ -35,8 +35,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int) {
     icc.dwICC = ICC_WIN95_CLASSES;
     InitCommonControlsEx(&icc);
 
-    winrt::init_apartment(winrt::apartment_type::single_threaded);
-
+    const HRESULT comHr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     const bool startMinimized = HasCommandLineFlag(lpCmdLine, L"--minimized");
 
     int exitCode = 0;
@@ -44,11 +43,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int) {
         vint::AppWindow app(hInstance, startMinimized);
         if (!app.Create()) {
             MessageBoxW(nullptr,
-                        L"Failed to initialize VOverclock Intel Beta UI (Windows 10 1903+ XAML runtime required).",
-                        L"VOverclock Intel Beta",
+                        L"Failed to initialize VOverclock Intel Beta Phase 2 UI (Direct2D/DirectWrite required).",
+                        L"VOverclock Intel Beta Phase 2",
                         MB_OK | MB_ICONERROR);
-            if (hMutex) CloseHandle(hMutex);
-            winrt::uninit_apartment();
+            if (SUCCEEDED(comHr)) CoUninitialize();
+            if (hMutex) {
+                ReleaseMutex(hMutex);
+                CloseHandle(hMutex);
+            }
             return 1;
         }
 
@@ -61,14 +63,23 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR lpCmdLine, int) {
             DispatchMessageW(&msg);
         }
         exitCode = static_cast<int>(msg.wParam);
-    } catch (winrt::hresult_error const& ex) {
-        MessageBoxW(nullptr, ex.message().c_str(), L"VOverclock Intel Beta - Error", MB_OK | MB_ICONERROR);
+    } catch (const std::exception&) {
+        MessageBoxW(nullptr,
+                    L"Unexpected runtime error in VOverclock Intel Beta Phase 2.",
+                    L"VOverclock Intel Beta Phase 2 - Error",
+                    MB_OK | MB_ICONERROR);
         exitCode = 1;
     } catch (...) {
+        MessageBoxW(nullptr,
+                    L"Unexpected error in VOverclock Intel Beta Phase 2.",
+                    L"VOverclock Intel Beta Phase 2 - Error",
+                    MB_OK | MB_ICONERROR);
         exitCode = 1;
     }
 
-    winrt::uninit_apartment();
+    if (SUCCEEDED(comHr)) {
+        CoUninitialize();
+    }
     if (hMutex) {
         ReleaseMutex(hMutex);
         CloseHandle(hMutex);

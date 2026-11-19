@@ -1,14 +1,14 @@
-# VOverclock Intel Beta — Windows Native Intel CPU Monitor & Tuner
+# VOverclock Intel Beta Phase 2 — Windows Native Intel CPU Monitor & Tuner
 
-**VOverclock Intel Beta** is an open-source, lightweight Intel CPU monitoring, Windows power-policy tuning, hybrid P/E-core scheduling, and per-application CPU priority optimizer for **Windows 10** and **Windows 11**, written in native **C++20**, **Win32**, and **XAML Islands** (`DesktopWindowXamlSource`). It compiles to a standalone native Win32 x64 executable with zero Electron, Chromium, or WebView2 bloat, zero kernel-mode drivers, and **zero interference with RAM/memory allocation**.
+**VOverclock Intel Beta Phase 2** is an open-source, lightweight Intel CPU monitoring, Windows power-policy tuning, hybrid P/E-core scheduling, and per-application CPU priority optimizer for **Windows 10** and **Windows 11**, written in native **C++20**, **Win32**, **Direct2D**, and **DirectWrite** with a statically linked C/C++ runtime (`/MT`). It compiles to a standalone, single-file native Win32 x64 executable with **zero XAML Islands / WinRT runtime dependencies**, zero VC++ Redistributable requirements, zero Electron/WebView2 bloat, zero kernel-mode drivers, and **zero interference with RAM/memory allocation**.
 
 > [!NOTE]
 > **Project Identity**
-> - **Product Name:** `VOverclock Intel Beta`
-> - **File Description:** `VOverclock Intel Beta - CPU Tuner & Core Monitor`
+> - **Product Name:** `VOverclock Intel Beta Phase 2`
+> - **File Description:** `VOverclock Intel Beta Phase 2 - CPU Tuner & Core Monitor`
 > - **Copyright:** `Vortex Open Source Project`
 > - **Created by:** `@vinnotdkk`
-> - **Repository Architecture Style:** Vortex Native C++20 / XAML Islands (`Win32` Host + `DesktopWindowXamlSource`)
+> - **Repository Architecture Style:** Vortex Native C++20 / Direct2D + DirectWrite (`Win32` Double-Buffered DIB Host, `/MT` Static CRT)
 
 ---
 
@@ -33,14 +33,14 @@
 
 ## Honest Scope: What This Tool Does (and Does NOT Do)
 
-**What VOverclock Intel Beta actually does:**
+**What VOverclock Intel Beta Phase 2 actually does:**
 - Reads hardware capabilities directly via `__cpuid` / `__cpuidex`, `GetLogicalProcessorInformationEx`, and `CallNtPowerInformation(ProcessorInformation)` to map P-Cores, E-Cores, standard cores, SMT/Hyper-Threading pairs, and >64-thread multi-group topologies.
 - Creates and manages a custom Windows power plan named **`VPower Intel Beta`** duplicated from Windows **Balanced** (tagged `[Balanced-HWP-V2]`), configuring official Windows Processor Power Management (`SUB_PROCESSOR`) settings: Intel Speed Shift (HWP EPP), Turbo Boost Policy, Autonomous Window, Core Parking (`CPMINCORES` / `CPMAXCORES`), Heterogeneous Scheduling Policy (`SCHEDPOLICY` / `SHORTVSCHEDPOL` / `HETEROFLOOR`), Frequency Cap Override (`PROCFREQMAX`), Ramp/Hold thresholds, and Idle C-States.
 - Applies reversible OS scheduling and timer tweaks (`PowerSetActiveOverlayScheme`, `NtSetTimerResolution`, `Win32PrioritySeparation`, `SystemResponsiveness`, `NetworkThrottlingIndex`, and MMCSS `Tasks\Games`).
 - Optimizes targeted `.exe` processes and the active foreground window using CPU priority classes, `SetProcessDefaultCpuSets` / `SetProcessAffinityMask`, `ProcessPowerThrottling` / `ThreadPowerThrottling` (EcoQoS bypass), High I/O priority (`ProcessIoPriority`), and optional HKLM Image File Execution Options (`PerfOptions`).
 - Monitors real-time per-core load (`NtQuerySystemInformation`), nominal/effective core clocks (`PDH` `% Processor Performance` + `Processor Frequency`), ACPI thermal zones (`MSAcpi_ThermalZoneTemperature` via WMI), and active EPP state every **500 ms**.
 
-**What VOverclock Intel Beta explicitly does NOT do:**
+**What VOverclock Intel Beta Phase 2 explicitly does NOT do:**
 - **NOT hardware BIOS/Ring-0 overclocking:** Does **not** ship any kernel driver (`.sys`), does **not** write MSRs, does **not** unlock locked multipliers, does **not** raise BCLK, does **not** increase core voltage (`VCore`), and does **not** override motherboard/EC firmware power limits (`PL1`, `PL2`, `PL4`, `IccMax`). On locked desktop/mobile SKUs (`Ratio / BCLK OC -> CPU LOCKED`), peak frequency remains bounded by Intel factory fused turbo bins, OEM TDP limits, and thermal headroom.
 - **Intel (`GenuineIntel`) only:** Non-Intel CPUs (such as `AuthenticAMD` or `HygonGenuine`) are detected via CPUID leaf `0` and intentionally blocked with a notice overlay.
 - **Zero RAM/memory modification:** Never trims working sets, flushes standby memory lists, or modifies pagefile/RAM behavior.
@@ -77,27 +77,27 @@ Using aggressive OS power, timer, scheduler, and priority settings carries real 
 8. **Persistent HKLM Registry Changes If Uninstalled Without `Restore`**
    - Clicking **Apply Presets Settings** or **Apply Targets** with **OS & Scheduler Tuning** or **Persistent IFEO** enabled writes to `HKLM` and creates the `VPower Intel Beta` Windows scheme. Always click **`Restore`** (or select **`Restore Stock Power Plan`** from the tray icon) before deleting or uninstalling VOverclock Intel so all registry keys, overlay settings, IFEO entries, and power plans are reverted cleanly.
 
-9. **Minimum OS Runtime for UI**
-   - Requires **Windows 10 version 1903 (Build 18362)** or **Windows 11 x64** with working XAML Islands (`DesktopWindowXamlSource`). Stripped OS images missing the WinUI/XAML runtime will exit safely with an initialization error dialog (`MessageBoxW`) instead of crashing silently.
+9. **OS Portability & Compatibility Mode**
+   - Uses pure **Direct2D (`ID2D1DCRenderTarget`) + DirectWrite** over a double-buffered Win32 32-bit DIB surface with **static CRT (`/MT`)** and **runtime dynamic DPI lookup (`Win32Compat.hpp`)** — completely free of XAML Islands (`WindowsXamlManager` / `DesktopWindowXamlSource`), WinRT, or VC++ Redistributable DLLs. Runs reliably on Windows 10 (including older/LTSC/stripped gaming ISOs), Windows 11, and Windows Compatibility Modes without `0x8000FFFF` / `MaxTestedVersion` startup failures.
 
 ---
 
 ## Architecture Overview
 
-VOverclock Intel cleanly separates Win32/XAML presentation (`AppWindow`) from hardware/kernel power operations (`CpuIntelEngine`):
+VOverclock Intel cleanly separates pure Win32/Direct2D presentation (`AppWindow` + `VectorIcons`) from hardware/kernel power operations (`CpuIntelEngine`):
 
 ```text
 +-----------------------------------------------------------------------------+
 |                           wWinMain (src/main.cpp)                           |
 |  - Enforces single instance via Local\VOverclockIntel_V1_SingleInstance     |
 |  - Parses --minimized / --elevated-restart startup flags                    |
-|  - Initializes STA WinRT/COM & top-level exception error guard              |
+|  - Initializes STA COM (WIC/WMI) & top-level exception error guard          |
 +--------------------------------------+--------------------------------------+
                                        |
            +---------------------------+---------------------------+
            v                                                       v
 +-----------------------------------+     +-----------------------------------+
-|     AppWindow (Win32 + XAML)      |     |       CpuIntelEngine (Engine)     |
+|  AppWindow (Win32 + D2D + DWrite) |     |       CpuIntelEngine (Engine)     |
 | - Frameless 1120x630 DIP light UI |     | - CPUID topology + CallNtPowerInfo|
 | - PerMonitorV2 DPI + Layered Fade | --> | - PDH + NtQuerySystemInfo + WMI   |
 | - 500ms live core sparklines      | <-- | - PowerWrite* (`VPower Intel Beta`|
@@ -121,10 +121,10 @@ VOverclock Intel cleanly separates Win32/XAML presentation (`AppWindow`) from ha
 
 | Component | Implementation | Purpose |
 | :--- | :--- | :--- |
-| **Language & Standard** | **C++20** (`/W4 /EHsc /permissive- /utf-8 /Zc:__cplusplus`) | Native Win32/WinRT implementation ([CMakeLists.txt](file:///C:/Users/Administrator/Documents/VOverclock%20Intel/CMakeLists.txt)) |
-| **Window Host & DPI** | **Win32 (`HWND`)** + `PerMonitorV2` manifest ([app.manifest](file:///C:/Users/Administrator/Documents/VOverclock%20Intel/resources/app.manifest)) | Frameless `1120x630` DIP host window, custom drag, layered fade transitions |
-| **UI Rendering** | **XAML Islands** (`DesktopWindowXamlSource`, `RequestedTheme="Light"`) | Hardware-accelerated UI defined in [AppLayout.xaml](file:///C:/Users/Administrator/Documents/VOverclock%20Intel/resources/ui/AppLayout.xaml) |
-| **2D / Text Graphics** | **Direct2D (`d2d1`)**, **DirectWrite (`dwrite`)**, **Direct3D 11 (`d3d11`)**, **WIC (`windowscodecs`)** | Live CPU% tray icon rendering and high-DPI PNG asset scaling |
+| **Language & Standard** | **C++20** (`/W4 /EHsc /permissive- /utf-8 /Zc:__cplusplus /MT`) | Native Win32 / Direct2D static-CRT build ([CMakeLists.txt](file:///C:/Users/Administrator/Documents/VOverclock%20Intel/CMakeLists.txt)) |
+| **Window Host & DPI** | **Win32 (`HWND`)** + `Win32Compat.hpp` dynamic DPI + `PerMonitorV2` ([app.manifest](file:///C:/Users/Administrator/Documents/VOverclock%20Intel/resources/app.manifest)) | Frameless `1120x630` DIP host window, layered fades, universal Windows compat |
+| **UI Rendering** | **Direct2D (`ID2D1DCRenderTarget`)** + **DirectWrite** + 32bpp DIB double-buffer | Crisp hardware/software 2D UI, draggable sliders, popups & core sparklines |
+| **2D / Text Graphics** | **Direct2D (`d2d1`)**, **DirectWrite (`dwrite`)**, **WIC (`windowscodecs`)** | Custom UI controls, vector icons ([VectorIcons.cpp](file:///C:/Users/Administrator/Documents/VOverclock%20Intel/src/VectorIcons.cpp)), tray CPU% badge & PNG logo |
 | **CPU Telemetry** | `__cpuid` / `__cpuidex`, `pdh`, `ntdll` (`NtQuerySystemInformation`), `powrprof` (`CallNtPowerInformation`), `wbemuuid` | Hybrid P/E/uniform topology detection, per-core MHz, usage %, WMI thermal |
 | **Power & OS Policy** | `powrprof` (`PowerDuplicateScheme`, `PowerWriteAC/DCValueIndex`, `PowerSetActiveScheme`, `PowerSetActiveOverlayScheme`) | Non-destructive custom scheme tuning, HWP EPP, OS scheduler & overlay control |
 | **Process Control** | `advapi32`, `ntdll` (`NtSetInformationProcess` / `NtSetTimerResolution`), `kernel32` (`SetProcessDefaultCpuSets`) | Priority, I/O priority, EcoQoS bypass, P-Core routing, HKLM IFEO persistence |
@@ -257,7 +257,7 @@ Preferences are stored natively via **`xmllite.dll`**:
 
 | Requirement | Component / Version |
 | :--- | :--- |
-| **Operating System** | Windows 10 (1903+) or Windows 11 (x64) |
+| **Operating System** | Windows 10 (all builds) or Windows 11 (x64) |
 | **CMake** | `3.20` or newer (`Kitware.CMake`) |
 | **Compiler & SDK** | Visual Studio 2019 / 2022 / 2026 or **Build Tools** with **Desktop development with C++** (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64`) & Windows 10/11 SDK |
 
@@ -293,16 +293,18 @@ VOverclock Intel/
 │   └── vointel.png                  # High-resolution brand logo master source
 ├── resources/
 │   ├── ui/
-│   │   └── AppLayout.xaml           # Light-theme XAML Islands layout, styles & storyboards
+│   │   └── AppLayout.xaml           # UI layout design specification (1120x630 light theme)
 │   ├── app.manifest                 # PerMonitorV2 DPI & asInvoker UAC manifest
 │   ├── resource.h                   # Win32 resource IDs
-│   └── VOverclock.rc                # Embedded icon, PNG, XAML & PE VersionInfo metadata
+│   └── VOverclock.rc                # Embedded icon, PNG logo & PE VersionInfo metadata
 ├── src/
-│   ├── main.cpp                     # wWinMain, single-instance mutex, WinRT init & error guard
-│   ├── AppWindow.hpp / .cpp         # Win32 host window, XAML bindings, telemetry UI & tray
+│   ├── main.cpp                     # wWinMain, single-instance mutex, COM init & error guard
+│   ├── AppWindow.hpp / .cpp         # Pure Direct2D/DirectWrite host window, UI controls & tray
 │   ├── CpuIntelEngine.hpp / .cpp    # Intel topology, PDH/WMI, VPower scheme, Restore & Apps Tweak
 │   ├── ConfigManager.hpp / .cpp     # xmllite XML persistence & HKCU Run startup entry
-│   └── TrayIconRenderer.hpp / .cpp  # Direct2D/DirectWrite live CPU % tray icon & PNG loader
+│   ├── TrayIconRenderer.hpp / .cpp  # Direct2D/DirectWrite live CPU % tray icon & PNG loader
+│   ├── VectorIcons.hpp / .cpp       # Normalized Direct2D vector geometry icons
+│   └── Win32Compat.hpp              # Dynamic DPI resolvers (GetProcAddress) & WIC PBGRA decoder
 ├── .gitignore                       # Ignores build/, out/, .vs/, *.obj, *.exe, *.pdb, etc.
 ├── build.bat                        # Automated CMake + MSVC dependency check & Release x64 build
 ├── CMakeLists.txt                   # C++20 CMake build configuration
